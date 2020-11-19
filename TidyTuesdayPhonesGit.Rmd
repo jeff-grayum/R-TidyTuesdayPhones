@@ -78,11 +78,11 @@ us_mobile %>%
 Okay, now for David's version. First, let's combine the two data sets together.
 ```{r}
 mobile <- mobile %>%
-  rename(subscriptions = subsscriptions) %>%
+  rename(subscriptions = mobile_subs) %>%
   mutate(type = "Mobile")
 
 landline <- landline %>%
-   rename(subscriptions = subsscriptions) %>%
+   rename(subscriptions = landline_subs) %>%
   mutate(type = "Landline")
 
 phones <- bind_rows(mobile, landline) %>%
@@ -139,6 +139,10 @@ country_sizes <- phones %>%
   group_by(country) %>%
   summarize(avg_population = mean(total_pop, na.rm = TRUE)) %>%
   arrange(desc(avg_population))
+
+phones %>%
+  arrange(desc(subscriptions)) %>%
+  view()
 
 ```
 
