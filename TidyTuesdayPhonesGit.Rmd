@@ -1,0 +1,144 @@
+---
+title: "TidyTuesdayPhones"
+author: "Jeff Grayum"
+date: "11/13/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+theme_set(theme_())
+```
+
+
+```{r}
+tuesdata <- tidytuesdayR::tt_load('2020-11-10')
+```
+
+```{r}
+mobile <- tuesdata$mobile 
+
+landline <- tuesdata$landline
+```
+
+
+```{r}
+mobile %>%
+  view()
+
+
+mobile %>%
+  group_by(year, continent) %>%
+  summarize(ave_users = mean(mobile_subs, na.rm = TRUE),
+            ) %>%
+  ggplot(aes(year, ave_users)) +
+  geom_col() +
+  facet_wrap(~ continent) +
+  labs(x = "Year",
+       y = "Average number of subscribers",
+       title = "Average mobile users per year",
+       subtitle = "Grouped by continent")
+  
+
+mobile %>%
+  ggplot(aes(year, mobile_subs)) + 
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~ continent) +
+  labs(x = "Year",
+       y = "Mobile subscribers",
+       title = "Mobile subscribers per year, by continent")
+
+mobile %>%
+  distinct(entity) %>%
+  view()
+
+us_mobile <- mobile %>%
+  filter(entity == "United States") %>%
+  view()
+
+us_mobile %>%
+  ggplot(aes(year, mobile_subs)) +
+  geom_col() +
+  labs(x = "Year",
+       y = "Mobile Subscribers",
+       title = "Mobile subscribers in the United States each year")
+```
+
+
+Okay, now for David's version. First, let's combine the two data sets together.
+```{r}
+mobile <- mobile %>%
+  rename(subscriptions = subsscriptions) %>%
+  mutate(type = "Mobile")
+
+landline <- landline %>%
+   rename(subscriptions = subsscriptions) %>%
+  mutate(type = "Landline")
+
+phones <- bind_rows(mobile, landline) %>%
+  rename(country = entity)
+```
+
+```{r}
+phones %>%
+  view()
+
+phones %>%
+  filter(country == "Sudan") %>%
+  ggplot(aes(year, subscriptions, color = type)) +
+  geom_line() +
+  labs(x = "Year",
+       y = "Subscribers",
+       color = "",
+       title = "Mobie subscribers vs landline subscribers in the United States")
+
+#Look at the interaction function!!
+
+interaction(1:3, c("a", "b", "c"))
+
+phones %>%
+  semi_join(country_sizes %>% top_n(40, avg_population), by = "country") %>%
+  ggplot(aes(year, 
+             subscriptions,
+             color = type,
+             group = interaction(type, country))) +
+  geom_line() +
+  facet_wrap(~continent)
+
+phones %>%
+  filter(!is.na(subscriptions)) %>%
+  group_by(year, continent, type) %>%
+  summarize(avg_subscriptions = mean(subscriptions),
+            q25 = quantile(subscriptions, .25),
+            q75 = quantile(subscriptions, .75)) %>%
+  ggplot(aes(year,
+             avg_subscriptions, 
+             color = type)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = .25) +
+  facet_wrap(~ continent) +
+  labs(x = "Year", 
+       y = "Average subscriptions per person",
+       title = "Average number of mobile and landline subscribers by continent",
+       subtitle = "Ribbon shows the 25th-75th percentile range", 
+       color = "")
+  
+
+
+country_sizes <- phones %>%
+  group_by(country) %>%
+  summarize(avg_population = mean(total_pop, na.rm = TRUE)) %>%
+  arrange(desc(avg_population))
+
+```
+
